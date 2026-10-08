@@ -1,0 +1,36 @@
+name: Build ImmortalWrt MT798X 24.10 iStore
+on:
+  workflow_dispatch: # 手动触发编译
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: 检出源码
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: 安装编译依赖
+        run: |
+          sudo apt update
+          sudo apt install -y build-essential clang flex bison g++ gawk gcc-multilib g++-multilib gettext git libncurses5-dev libssl-dev python3 python3-pip unzip rsync wget libelf-dev
+
+      - name: 更新 feeds
+        run: |
+          ./scripts/feeds update -a
+          ./scripts/feeds install -a
+
+      - name: 加载仓库内.config配置
+        run: |
+          cp .config .config.bak
+          make defconfig
+
+      - name: 开始编译
+        run: |
+          make -j$(nproc) V=s
+
+      - name: 上传固件成品
+        uses: actions/upload-artifact@v4
+        with:
+          name: MT798X-ImmortalWrt-Firmware
+          path: bin/targets/**/*.img.gz
